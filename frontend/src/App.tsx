@@ -422,15 +422,24 @@ export default function App() {
     return {
       name: nameMap[code] || code,
       Rate: rate,
+      recovered: recovered,
+      total: total,
       color: colorMap[code] || '#64748b'
     };
   });
 
+  const processedCasesCount = metrics.successful_recoveries + metrics.guardrail_blocks + metrics.human_escalations + metrics.failed_recoveries;
+  
+  const casesAwaitingProcessing = payments.filter(p => 
+    p.status === 'FAILED' && 
+    !recoveryCases.some(c => c.payment_record_id === p.record_id)
+  ).length;
+
   const pieData = [
     { name: 'Recovered', value: metrics.successful_recoveries, color: '#10b981' },
-    { name: 'At Risk (Failed)', value: payments.filter(p => p.status === 'FAILED').length, color: '#ef4444' },
-    { name: 'Guardrail Blocked', value: metrics.guardrail_blocks, color: '#f43f5e' },
-    { name: 'Human Escalated', value: metrics.human_escalations, color: '#f59e0b' }
+    { name: 'Blocked', value: metrics.guardrail_blocks, color: '#f43f5e' },
+    { name: 'Escalated', value: metrics.human_escalations, color: '#f59e0b' },
+    { name: 'Still Failed', value: metrics.failed_recoveries, color: '#ef4444' }
   ];
 
   const currentSelectedPayment = payments.find(p => p.record_id === selectedPaymentId);
@@ -607,9 +616,10 @@ export default function App() {
               onClick={fetchData} 
               disabled={loading}
               className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 flex items-center gap-2 text-xs font-semibold disabled:opacity-50 transition"
+              title="Refresh gateway integration status and query metrics"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-              Sync Gateway
+              Refresh Gateway Status
             </button>
             <span className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded-full uppercase tracking-wider flex items-center gap-1">
               <Check size={12} className="stroke-[3px]" />
@@ -640,6 +650,7 @@ export default function App() {
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Revenue at Risk</p>
                         <p className="text-2xl font-bold text-rose-600 mt-2 tracking-tight">{formatINR(metrics.revenue_at_risk)}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-normal">Total value of unresolved payment failures (current snapshot)</p>
                       </div>
                       <span className="bg-rose-50 text-rose-600 p-2 rounded-lg border border-rose-100"><AlertTriangle size={16} /></span>
                     </div>
@@ -647,6 +658,7 @@ export default function App() {
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recoverable (Active)</p>
                         <p className="text-2xl font-bold text-amber-600 mt-2 tracking-tight">{formatINR(metrics.recoverable_revenue)}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-normal">Value of active cases in recovery pipeline</p>
                       </div>
                       <span className="bg-amber-50 text-amber-600 p-2 rounded-lg border border-amber-100"><TrendingUp size={16} /></span>
                     </div>
@@ -654,13 +666,23 @@ export default function App() {
                       <div>
                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Revenue Recovered</p>
                         <p className="text-2xl font-bold text-emerald-600 mt-2 tracking-tight">{formatINR(metrics.revenue_recovered)}</p>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-normal">Cumulative value of payments successfully recovered</p>
                       </div>
                       <span className="bg-emerald-50 text-emerald-600 p-2 rounded-lg border border-emerald-100"><CheckCircle size={16} /></span>
                     </div>
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex justify-between items-start">
                       <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recovery Rate</p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recovery Rate</p>
+                          <span title="Formula: (Successful Recoveries / Total Cases) &times; 100&#10;- Successful Recoveries: Cases in RECOVERED status&#10;- Total Cases: Total count of all recovery cases in the database (including recovered, failed, blocked, escalated, and active)">
+                            <HelpCircle 
+                              size={12} 
+                              className="text-slate-400 cursor-help" 
+                            />
+                          </span>
+                        </div>
                         <p className="text-2xl font-bold text-blue-600 mt-2 tracking-tight">{metrics.recovery_rate}%</p>
+                        <p className="text-[10px] text-slate-400 mt-1 leading-normal">Percentage of total recovery cases successfully resolved</p>
                       </div>
                       <span className="bg-blue-50 text-blue-600 p-2 rounded-lg border border-blue-100"><BarChart2 size={16} /></span>
                     </div>
@@ -694,21 +716,39 @@ export default function App() {
                         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Recovery Success Rate by Failure Type (%)</h3>
                         <p className="text-[11px] text-slate-400 mb-6">Historical trend data is not available yet. Showing aggregate success rates.</p>
                       </div>
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={barChartData}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} />
-                            <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={10} tickLine={false} />
-                            <Tooltip formatter={(value) => [`${value}%`, 'Recovery Rate']} />
-                            <Bar dataKey="Rate" radius={[4, 4, 0, 0]}>
-                              {barChartData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
+                      {metrics.successful_recoveries < 10 ? (
+                        <div className="flex flex-col items-center justify-center h-64 text-center p-6 border border-dashed border-gray-250 rounded-lg">
+                          <BarChart2 size={32} className="text-gray-300 mb-2" />
+                          <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Insufficient Category Data</p>
+                          <p className="text-[10px] text-slate-400 mt-1 max-w-sm">
+                            Not enough processed cases per category to show a reliable rate.
+                          </p>
+                          <div className="mt-4 w-full space-y-1 text-left text-[10px] text-slate-600 bg-slate-50 p-2.5 rounded border border-gray-100">
+                            {barChartData.map((d, i) => (
+                              <div key={i} className="flex justify-between">
+                                <span>{d.name}</span>
+                                <span className="font-semibold text-slate-700">{d.recovered} of {d.total} recovered ({d.Rate}%)</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={barChartData}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                              <XAxis dataKey="name" stroke="#94a3b8" fontSize={9} tickLine={false} />
+                              <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={10} tickLine={false} />
+                              <Tooltip formatter={(value) => [`${value}%`, 'Recovery Rate']} />
+                              <Bar dataKey="Rate" radius={[4, 4, 0, 0]}>
+                                {barChartData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      )}
                     </div>
 
                     {/* Revenue Case Outcomes Pie Chart */}
@@ -718,36 +758,104 @@ export default function App() {
                         <p className="text-[11px] text-slate-400 mb-6">Current breakdown of cases in the system database.</p>
                       </div>
                       <div className="h-64 flex items-center justify-between">
-                        <div className="w-1/2 h-full">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={pieData.filter(d => d.value > 0)}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={4}
-                                dataKey="value"
-                              >
-                                {pieData.filter(d => d.value > 0).map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                              </Pie>
-                              <Tooltip />
-                            </PieChart>
-                          </ResponsiveContainer>
-                        </div>
-                        
-                        <div className="w-1/2 space-y-3 pl-4">
-                          {pieData.map((d, i) => (
-                            <div key={i} className="flex items-center gap-3 text-xs">
-                              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }}></span>
-                              <span className="text-slate-500 capitalize">{d.name}</span>
-                              <span className="font-bold text-slate-800 ml-auto">{d.value}</span>
+                        {processedCasesCount === 0 ? (
+                          <div className="w-full flex flex-col items-center justify-center text-center p-6">
+                            <HelpCircle size={32} className="text-gray-300 mb-2" />
+                            <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">No Processed Cases</p>
+                            <p className="text-[10px] text-slate-400 mt-1 max-w-xs">
+                              Run a recovery batch to start processing failed payments.
+                            </p>
+                            <div className="mt-4 w-full">
+                              <div className="flex items-center gap-3 text-xs text-amber-700 font-semibold bg-amber-50 px-2.5 py-1.5 rounded border border-amber-100">
+                                <TrendingUp size={12} />
+                                <span>Awaiting Recovery</span>
+                                <span className="font-bold ml-auto">{casesAwaitingProcessing}</span>
+                              </div>
+                              {casesAwaitingProcessing > 0 && (
+                                <button
+                                  onClick={handleRunBatch}
+                                  disabled={actionLoading === 'batch'}
+                                  className="w-full mt-2 flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                                >
+                                  {actionLoading === 'batch' ? (
+                                    <>
+                                      <RefreshCw size={12} className="animate-spin" />
+                                      Processing Batch...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Play size={12} />
+                                      Run Recovery Batch
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="w-1/2 h-full">
+                              <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                  <Pie
+                                    data={pieData.filter(d => d.value > 0)}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={60}
+                                    outerRadius={80}
+                                    paddingAngle={4}
+                                    dataKey="value"
+                                  >
+                                    {pieData.filter(d => d.value > 0).map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                  </Pie>
+                                  <Tooltip formatter={(value) => [value, 'Cases']} />
+                                </PieChart>
+                              </ResponsiveContainer>
+                            </div>
+                            
+                            <div className="w-1/2 space-y-3 pl-4">
+                              <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 border-b border-gray-150 pb-1.5">
+                                Processed Cases: {processedCasesCount}
+                              </div>
+                              {pieData.map((d, i) => (
+                                <div key={i} className="flex items-center gap-3 text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }}></span>
+                                  <span className="text-slate-500 capitalize">{d.name}</span>
+                                  <span className="font-bold text-slate-800 ml-auto">{d.value}</span>
+                                </div>
+                              ))}
+                              
+                              <div className="border-t border-gray-100 pt-2.5 mt-2 flex flex-col gap-2">
+                                <div className="flex items-center gap-3 text-xs text-amber-700 font-semibold bg-amber-50 px-2 py-1.5 rounded border border-amber-100">
+                                  <TrendingUp size={12} />
+                                  <span>Awaiting Recovery</span>
+                                  <span className="font-bold ml-auto">{casesAwaitingProcessing}</span>
+                                </div>
+                                {casesAwaitingProcessing > 0 && (
+                                  <button
+                                    onClick={handleRunBatch}
+                                    disabled={actionLoading === 'batch'}
+                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition disabled:opacity-50"
+                                  >
+                                    {actionLoading === 'batch' ? (
+                                      <>
+                                        <RefreshCw size={12} className="animate-spin" />
+                                        Processing Batch...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Play size={12} />
+                                        Run Recovery Batch
+                                      </>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -1,89 +1,179 @@
-# RecoverAI - AI Revenue Recovery Agent
+# RecoverAI — AI Revenue Recovery Agent
 
-> **AI recommends. Policies decide. Executor acts. Verification
-> confirms.**
+> **AI recommends. Policies decide. Executor acts. Verification confirms.**
 
-RecoverAI is an AI-assisted revenue recovery control center designed to
-detect failed payments, diagnose recovery opportunities, apply
-deterministic safety guardrails, execute eligible recovery actions,
-verify outcomes, and maintain a persistent audit trail.
+RecoverAI is an AI-assisted revenue recovery control center designed to detect failed payments, diagnose recovery opportunities, apply deterministic safety guardrails, execute eligible recovery actions, verify outcomes, and maintain a persistent audit trail.
 
-The project is designed for the Razorpay buildathon and supports both a
-deterministic **Simulation/Mock mode** for reliable demonstrations and
-an optional **Razorpay Test Mode** integration for gateway-state
-verification and authorized-payment capture.
+Built for the **Razorpay AI Buildathon 2026**, RecoverAI supports both:
 
-------------------------------------------------------------------------
+* **Simulation / Mock Mode** — deterministic and safe for demonstrations
+* **Razorpay Test Mode** — optional integration for gateway-state verification and authorized-payment capture
 
-## Product Overview
+> ⚠️ **Important:** This project is a buildathon demonstration. It does not use Razorpay Live Mode or process real customer payments. Simulation scenarios use synthetic/demo data.
 
-Failed payments represent potentially recoverable revenue, but automated
-payment recovery must be controlled carefully.
+---
 
-RecoverAI separates intelligence from execution:
+## Table of Contents
 
-``` text
+1. [Problem](#problem)
+2. [Solution](#solution)
+3. [Core Principle](#core-principle)
+4. [Key Capabilities](#key-capabilities)
+5. [Architecture](#architecture)
+6. [How RecoverAI Works](#how-recoverai-works)
+7. [Safety & Guardrails](#safety--guardrails)
+8. [Persistent Idempotency](#persistent-idempotency)
+9. [Recovery State Machine](#recovery-state-machine)
+10. [Technology Stack](#technology-stack)
+11. [Project Structure](#project-structure)
+12. [Requirements](#requirements)
+13. [Quick Start](#quick-start)
+14. [Environment Configuration](#environment-configuration)
+15. [Simulation Mode](#simulation-mode)
+16. [Razorpay Test Mode](#razorpay-test-mode)
+17. [Integration Status](#integration-status)
+18. [Testing](#testing)
+19. [Evaluation](#evaluation)
+20. [Demo Scenarios](#demo-scenarios)
+21. [Docker](#docker)
+22. [Docker Compose](#docker-compose)
+23. [Production Deployment](#production-deployment)
+24. [Database Considerations](#database-considerations)
+25. [Security](#security)
+26. [Troubleshooting](#troubleshooting)
+27. [Demo Flow](#demo-flow)
+28. [Pre-Submission Checklist](#pre-submission-checklist)
+29. [Limitations](#limitations)
+30. [Future Improvements](#future-improvements)
+31. [License](#license)
+32. [Acknowledgements](#acknowledgements)
+
+---
+
+# Problem
+
+Failed payments represent potentially recoverable revenue, but not every failed payment should be retried or handled in the same way.
+
+A payment can fail because of:
+
+* Temporary provider/network problems
+* Authentication issues
+* Customer payment-method problems
+* Retry limits
+* Refund requests
+* Already-completed payments
+* Other gateway or application states
+
+Treating every failed payment identically can lead to:
+
+* Missed revenue-recovery opportunities
+* Unnecessary retries
+* Duplicate execution
+* Poor customer experience
+* Unsafe automated payment operations
+
+The challenge is therefore not simply:
+
+> **"Can AI decide what to do?"**
+
+It is:
+
+> **"Can AI recommend useful recovery actions while deterministic policies prevent unsafe financial operations?"**
+
+---
+
+# Solution
+
+RecoverAI separates **intelligence from execution**.
+
+The system follows this pipeline:
+
+```text
 Failed Payment
-      ↓
+     ↓
 Detection
-      ↓
+     ↓
 Diagnosis
-      ↓
+     ↓
 AI / Rules Recommendation
-      ↓
+     ↓
 Schema Validation
-      ↓
+     ↓
 Deterministic Guardrails
-      ↓
+     ↓
 Idempotency Check
-      ↓
+     ↓
 Execution
-      ↓
+     ↓
 Gateway / State Verification
-      ↓
+     ↓
 Recovered / Escalated / Failed
-      ↓
+     ↓
 Audit Trail
 ```
 
-The AI does **not** have unrestricted authority over payments.
+The AI does **not** receive unrestricted authority over payment execution.
 
-### Core principle
+Instead, AI provides a recommendation, while deterministic application policies determine whether that recommendation is actually allowed.
 
-**AI recommends → Policies decide → Executor acts → Verification
-confirms**
+---
 
-------------------------------------------------------------------------
+# Core Principle
 
-## Key Capabilities
+## AI recommends → Policies decide → Executor acts → Verification confirms
 
--   Failed-payment detection and classification
--   Deterministic recovery rules
--   AI-assisted analysis for ambiguous failures
--   Structured AI decision validation
--   Safety guardrails and policy ceilings
--   High-value transaction protection
--   Refund-request protection
--   Communication opt-out protection
--   Retry/cooldown controls
--   Persistent idempotency protection
--   Recovery state-machine enforcement
--   Payment execution and post-action verification
--   Razorpay Test Mode integration
--   Mock/Simulation payment provider
--   Persistent audit trail
--   Recovery dashboard and revenue-at-risk analytics
--   Evaluation of Rules-only vs AI-assisted recovery
--   Eight deterministic demo scenarios
+This separation is the central design principle of RecoverAI.
 
-------------------------------------------------------------------------
+### AI
 
-## Architecture
+The AI can analyze available payment and customer context and recommend a recovery action.
 
-``` text
+### Policies
+
+Deterministic guardrails evaluate whether that recommendation is safe and allowed.
+
+### Executor
+
+Only an approved action can reach the payment-provider execution layer.
+
+### Verification
+
+The system checks the resulting payment state before declaring recovery successful.
+
+This prevents an AI recommendation from becoming an unchecked financial operation.
+
+---
+
+# Key Capabilities
+
+* Failed-payment detection and classification
+* Deterministic recovery rules
+* AI-assisted analysis for ambiguous failures
+* Structured AI decision validation
+* Safety guardrails and policy ceilings
+* High-value transaction protection
+* Refund-request protection
+* Communication opt-out protection
+* Retry and cooldown controls
+* Persistent idempotency protection
+* Recovery state-machine enforcement
+* Payment execution and post-action verification
+* Razorpay Test Mode integration
+* Mock / Simulation payment provider
+* Persistent audit trail
+* Recovery dashboard
+* Revenue-at-risk analytics
+* Rules-only vs AI-assisted evaluation
+* Eight deterministic demonstration scenarios
+
+---
+
+# Architecture
+
+```text
                          ┌──────────────────────┐
                          │      React/Vite      │
-                         │    RecoverAI UI      │
+                         │     RecoverAI UI     │
                          └──────────┬───────────┘
                                     │
                                     │ /api/*
@@ -93,75 +183,211 @@ confirms**
                          │     Application      │
                          └──────────┬───────────┘
                                     │
-                 ┌──────────────────┼──────────────────┐
-                 │                  │                  │
-                 ▼                  ▼                  ▼
-          Recovery Engine      AI / Rules         Database
-                 │                  │             SQLite/
-                 │                  │             SQLAlchemy
-                 ▼                  ▼
-             Guardrails        Decision
-                 │              Validation
-                 └──────────────┬───────────────────┘
-                                ▼
-                         Payment Provider
-                         ┌──────┴───────┐
-                         │              │
-                         ▼              ▼
-                       Mock       Razorpay Test
-                     Provider         API
-                         │              │
-                         └──────┬───────┘
-                                ▼
-                           Verification
-                                │
-                                ▼
-                          Audit / Metrics
+                    ┌───────────────┼───────────────┐
+                    │               │               │
+                    ▼               ▼               ▼
+             Recovery Engine   AI / Rules       Database
+                    │               │          SQLite/
+                    │               │          SQLAlchemy
+                    ▼               ▼
+                Guardrails      Decision
+                    │           Validation
+                    └──────────────┬────────────┘
+                                   ▼
+                           Payment Provider
+                         ┌─────────┴─────────┐
+                         │                   │
+                         ▼                   ▼
+                       Mock            Razorpay Test
+                     Provider               API
+                         │                   │
+                         └─────────┬─────────┘
+                                   ▼
+                              Verification
+                                   │
+                                   ▼
+                              Audit / Metrics
 ```
 
-------------------------------------------------------------------------
+---
 
-## Technology Stack
+# How RecoverAI Works
 
-### Backend
+## 1. Detect
 
--   Python
--   FastAPI
--   SQLAlchemy
--   Pydantic
--   SQLite
+The system identifies failed or potentially recoverable payments.
 
-### Frontend
+## 2. Diagnose
 
--   React
--   TypeScript
--   Vite
+Payment and customer context is analyzed to understand the likely recovery opportunity.
 
-### Integration
+## 3. Recommend
 
--   Razorpay REST APIs
--   Razorpay Test Mode
--   Mock payment provider for deterministic demos
+AI and deterministic rules produce a structured recovery recommendation.
 
-### Evaluation
+## 4. Validate
 
--   Synthetic payment dataset
--   Held-out evaluation set
--   Rules-only vs AI-assisted benchmark
--   Precision, Recall, F1 and recovered-revenue measurements
+AI output is treated as untrusted input and validated against the expected schema.
 
-### Deployment
+## 5. Apply Guardrails
 
--   Docker
--   Docker Compose
--   Compatible with container-based hosting such as Render or Google
-    Cloud Run
+Deterministic policies determine whether the recommendation is allowed.
 
-------------------------------------------------------------------------
+## 6. Check Idempotency
+
+The system checks whether the same recovery operation has already been processed.
+
+## 7. Execute
+
+Only an approved operation is sent to the payment provider.
+
+## 8. Verify
+
+The resulting gateway/payment state is checked.
+
+## 9. Record
+
+The operation and its outcome are persisted in the audit trail.
+
+---
+
+# Safety & Guardrails
+
+RecoverAI intentionally keeps financial execution outside the direct control of the AI.
+
+The system includes protections for:
+
+* Refund requests
+* High-value transactions
+* Retry limits
+* Cooldown periods
+* Communication opt-outs
+* Low-confidence AI decisions
+* Unsupported actions
+* Duplicate execution
+* Already-completed payments
+* Unknown gateway states
+* Provider timeouts
+* AI unavailability
+* Malformed AI output
+
+Guardrails are deterministic and **cannot be overridden by AI output**.
+
+This means that even if an AI recommendation is incorrect, the policy layer can block the operation.
+
+---
+
+# Persistent Idempotency
+
+RecoverAI maintains its own persistent application-level idempotency mechanism.
+
+Conceptually:
+
+```text
+Request
+   ↓
+Idempotency Key
+   ↓
+Database Lookup
+   ↓
+Already Processed?
+   ┌───────────────┴───────────────┐
+  YES                             NO
+   │                               │
+   ▼                               ▼
+Return Cached                    Execute
+Result                             │
+                                   ▼
+                                Persist
+                                 Result
+```
+
+The idempotency record survives a new database session/process.
+
+This helps prevent duplicate execution after an application restart.
+
+> **Note:** Razorpay Capture should not be described as using an unsupported custom idempotency header. RecoverAI's protection is provided by its own persistent application layer.
+
+---
+
+# Recovery State Machine
+
+The recovery lifecycle follows explicit states:
+
+```text
+DETECTED
+   ↓
+ANALYZING
+   ↓
+DECIDED
+   ↓
+GUARDRAIL_CHECK
+   ↓
+APPROVED
+   ↓
+EXECUTING
+   ↓
+VERIFYING
+   ↓
+RECOVERED
+```
+
+Alternative outcomes include:
+
+```text
+ESCALATED
+RETRY_PENDING
+FAILED
+UNKNOWN
+```
+
+Invalid state transitions are rejected by the backend.
+
+---
+
+# Technology Stack
+
+## Backend
+
+* Python
+* FastAPI
+* SQLAlchemy
+* Pydantic
+* SQLite
+
+## Frontend
+
+* React
+* TypeScript
+* Vite
+
+## Payment Integration
+
+* Razorpay REST APIs
+* Razorpay Test Mode
+* Mock payment provider
+
+## Evaluation
+
+* Synthetic payment dataset
+* Held-out evaluation set
+* Rules-only vs AI-assisted benchmark
+* Precision
+* Recall
+* F1 Score
+* Revenue Recovered
+
+## Deployment
+
+* Docker
+* Docker Compose
+* Container-compatible hosting such as Render or Google Cloud Run
+
+---
 
 # Project Structure
 
-``` text
+```text
 RecoverAI/
 │
 ├── backend/
@@ -173,7 +399,7 @@ RecoverAI/
 │   │   ├── schemas.py
 │   │   │
 │   │   ├── services/
-│   │   │   ├── ...
+│   │   │   └── ...
 │   │   │
 │   │   ├── ai/
 │   │   │   └── ai_provider.py
@@ -201,225 +427,227 @@ RecoverAI/
 ├── docker-compose.yml
 ├── .env.example
 ├── pytest.ini
-├── README.md
-└── DEPLOYMENT.md
+└── README.md
 ```
 
-------------------------------------------------------------------------
+---
 
 # Requirements
 
-For local development, install:
+For local development:
 
--   Python 3.10+ recommended
--   Node.js 18+ recommended
--   npm
--   Git
+* Git
+* Python 3.10+
+* Node.js 18+
+* npm
 
-For Docker deployment/development:
+For Docker:
 
--   Docker Desktop
+* Docker Desktop
 
 For Razorpay Test Mode:
 
--   Razorpay account
--   Razorpay Test Mode API credentials
+* Razorpay account
+* Razorpay Test Mode API credentials
 
-For an external AI provider, install/configure only the provider
-credentials specified by the current `.env.example` and application
-configuration.
+For an external AI provider:
 
-------------------------------------------------------------------------
+* Configure the provider credentials specified by the project's `.env.example` and application configuration.
 
-# Quick Start --- Local Development
+---
 
-## 1. Clone the repository
+# Quick Start
 
-``` bash
+## 1. Clone the Repository
+
+```bash
 git clone <YOUR_GITHUB_REPOSITORY_URL>
 cd RecoverAI
 ```
 
-------------------------------------------------------------------------
+---
 
-## 2. Create a Python virtual environment
+## 2. Create a Python Virtual Environment
 
 ### Windows
 
-``` powershell
+```powershell
 python -m venv .venv
 .venv\Scripts\activate
 ```
 
-### macOS/Linux
+### macOS / Linux
 
-``` bash
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-------------------------------------------------------------------------
+---
 
-## 3. Install backend dependencies
+## 3. Install Backend Dependencies
 
-If the repository contains `requirements.txt`:
-
-``` bash
+```bash
 pip install -r requirements.txt
 ```
 
-If dependencies are defined elsewhere, follow the project's current
-dependency configuration.
+If the project uses a different dependency configuration, follow the repository's current dependency files.
 
-------------------------------------------------------------------------
+---
 
-## 4. Install frontend dependencies
+## 4. Install Frontend Dependencies
 
-``` bash
+```bash
 cd frontend
 npm install
 cd ..
 ```
 
-------------------------------------------------------------------------
+---
 
 # Environment Configuration
 
 Create a local `.env` file in the project root.
 
-Start with Simulation mode:
+The recommended starting configuration is **Simulation Mode**:
 
-``` env
+```env
 RAZORPAY_MODE=mock
 ```
 
 For Razorpay Test Mode:
 
-``` env
+```env
 RAZORPAY_MODE=test
 RAZORPAY_KEY_ID=rzp_test_xxxxxxxxx
 RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxx
 ```
 
-Use the project's `.env.example` as the authoritative list of additional
-variables.
+Use `.env.example` as the authoritative source for any additional environment variables required by the current application.
 
-### Never commit secrets
+## Never Commit Secrets
 
 Do not commit:
 
-``` text
+```text
 .env
 ```
 
 or real:
 
-``` text
+```text
 RAZORPAY_KEY_ID
 RAZORPAY_KEY_SECRET
 AI provider API keys
 database credentials
 ```
 
-API credentials must remain server-side and must never be embedded in
-React/Vite frontend code.
+API credentials must remain server-side and must never be embedded into React/Vite frontend code.
 
-------------------------------------------------------------------------
+---
 
 # Run the Backend
 
 From the repository root:
 
-``` bash
+```bash
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Backend:
+The backend should be available at:
 
-``` text
+```text
 http://localhost:8000
 ```
 
-If the application exposes interactive API documentation, it is normally
-available through the FastAPI documentation routes configured by the
-application.
+Keep this terminal running.
 
-------------------------------------------------------------------------
+If the application exposes FastAPI interactive documentation, it will be available through the documentation routes configured by the application.
+
+---
 
 # Run the Frontend
 
-In a second terminal:
+Open a second terminal.
 
-``` bash
+Activate the virtual environment if necessary, then:
+
+```bash
 cd frontend
 npm run dev
 ```
 
 The Vite development server is typically available at:
 
-``` text
+```text
 http://localhost:5173
 ```
 
-Use the frontend development URL when developing the UI.
+The frontend should communicate with the backend through the configured Vite proxy.
 
-For production/demo deployment, use the compiled frontend served by the
-production application/container as configured by the project.
+For production deployment, the compiled frontend is served by the production application/container rather than the Vite development server.
 
-------------------------------------------------------------------------
+---
 
 # Simulation Mode
 
-Simulation mode is recommended for demos because it provides
-deterministic scenarios without requiring real gateway credentials.
+Simulation Mode is the recommended configuration for development and hackathon demonstrations.
 
 Set:
 
-``` env
+```env
 RAZORPAY_MODE=mock
 ```
 
 The application should display:
 
-``` text
+```text
 ● SIMULATION
 ```
 
-The simulation supports the project's recovery and safety scenarios
-without processing real payments.
+Simulation Mode provides deterministic recovery scenarios without requiring real gateway credentials or processing real payments.
 
-------------------------------------------------------------------------
+It is especially useful for demonstrating:
+
+* Successful recovery
+* Provider timeout
+* High-value blocking
+* Refund protection
+* Duplicate execution
+* Already-completed payments
+* AI unavailable
+* Malformed AI output
+
+---
 
 # Razorpay Test Mode
 
 RecoverAI can optionally connect to Razorpay Test Mode.
 
-Set:
+Configure:
 
-``` env
+```env
 RAZORPAY_MODE=test
 RAZORPAY_KEY_ID=rzp_test_xxxxxxxxx
 RAZORPAY_KEY_SECRET=xxxxxxxxxxxxxxxx
 ```
 
-The application communicates with Razorpay server-side.
+The application communicates with Razorpay from the server side.
 
-The test adapter uses the Razorpay API for supported gateway operations
-such as:
+The Test Mode adapter supports gateway operations such as:
 
--   payment retrieval
--   order-payment inspection
--   authorized-payment capture
--   post-action verification
+* Payment retrieval
+* Order-payment inspection
+* Authorized-payment capture
+* Post-action verification
 
-### Important payment-safety behavior
+## Important Payment-Safety Behavior
 
-RecoverAI does **not** treat a failed Razorpay payment as directly
-capturable.
+RecoverAI does **not** treat a failed Razorpay payment as directly capturable.
 
-The real test-mode execution flow is:
+The Test Mode execution flow is:
 
-``` text
+```text
 Fetch Payment
       ↓
 Inspect Gateway Status
@@ -449,255 +677,116 @@ Already-captured payments are skipped rather than captured again.
 
 Unknown payment states are escalated.
 
-------------------------------------------------------------------------
+Restart the backend after changing `.env`.
+
+---
 
 # Integration Status
 
 The application exposes an integration status endpoint:
 
-``` http
+```http
 GET /api/integrations/razorpay/status
 ```
 
-The UI uses this to communicate the active provider/environment.
+The UI uses this endpoint to communicate the active provider/environment.
 
-Typical modes:
+Typical states:
 
-``` text
+```text
 SIMULATION
 RAZORPAY TEST
 ```
 
 Credentials are not returned by the status API.
 
-------------------------------------------------------------------------
+The frontend should never receive the Razorpay secret.
 
-# Recovery Safety Model
-
-RecoverAI intentionally separates AI decision-making from execution
-authority.
-
-## AI
-
-The AI can recommend an action based on available payment/customer
-context.
-
-## Policies
-
-Deterministic guardrails decide whether the recommendation is allowed.
-
-## Executor
-
-Only an approved action can reach the payment-provider execution layer.
-
-## Verification
-
-The system verifies the resulting payment state before declaring
-success.
-
-This prevents an AI recommendation from becoming an unchecked payment
-operation.
-
-------------------------------------------------------------------------
-
-# Guardrails
-
-The system includes protection for scenarios such as:
-
--   refund requested
--   high-value transactions
--   retry limits
--   cooldowns
--   communication opt-out
--   low-confidence AI decisions
--   unsupported actions
--   duplicate execution
--   already-completed payments
--   unknown gateway states
-
-Guardrails are deterministic and are not overridden by AI output.
-
-------------------------------------------------------------------------
-
-# Persistent Idempotency
-
-RecoverAI maintains its own persistent idempotency mechanism.
-
-Conceptually:
-
-``` text
-Request
-   ↓
-Idempotency Key
-   ↓
-Database Lookup
-   ↓
-Already Processed?
- ┌──────┴──────┐
-YES           NO
- │             │
- ▼             ▼
-Return       Execute
-Cached       Action
-Result          │
-                ▼
-             Persist
-             Result
-```
-
-The idempotency record survives a new database session/process,
-preventing duplicate execution after a restart.
-
-Razorpay Capture should not be described as using an unsupported custom
-idempotency header. RecoverAI's own persistence layer provides the
-application-level protection.
-
-------------------------------------------------------------------------
-
-# Recovery State Machine
-
-The recovery lifecycle follows explicit states.
-
-Conceptually:
-
-``` text
-DETECTED
-   ↓
-ANALYZING
-   ↓
-DECIDED
-   ↓
-GUARDRAIL_CHECK
-   ↓
-APPROVED
-   ↓
-EXECUTING
-   ↓
-VERIFYING
-   ↓
-RECOVERED
-```
-
-Alternative outcomes include escalation, retry-pending and
-failure/unknown states according to the implemented state machine.
-
-Invalid transitions are rejected by the backend.
-
-------------------------------------------------------------------------
-
-# Demo Scenarios
-
-RecoverAI includes eight demonstration scenarios:
-
-1.  Successful Recovery
-2.  Provider Timeout
-3.  High-Value Transaction Block
-4.  Refund Protection
-5.  Duplicate / Idempotency Protection
-6.  Already Completed Payment
-7.  AI Unavailable
-8.  Malformed AI Output
-
-The demo scenarios are intended to demonstrate both recovery capability
-and safe failure handling.
-
-------------------------------------------------------------------------
-
-# Evaluation
-
-The project includes a synthetic dataset and a held-out evaluation
-workflow.
-
-The evaluation compares:
-
-``` text
-Rules-only
-vs
-AI-assisted
-```
-
-using metrics including:
-
--   Precision
--   Recall
--   F1 Score
--   Revenue Recovered
-
-The held-out dataset is intended to remain separate from mutable
-application/demo state.
-
-### Evaluation integrity
-
-Do not run evaluation against a database state that has been mutated by
-demo/reset operations if those operations alter fields used to make the
-original ground-truth labels.
-
-In particular, evaluation ground truth must remain consistent with the
-generated held-out dataset.
-
-Run:
-
-``` bash
-python evaluation/evaluate.py
-```
-
-Results are written according to the project's evaluation
-implementation, including:
-
-``` text
-results/final_results.json
-```
-
-Do not hardcode evaluation numbers into the dashboard.
-
-------------------------------------------------------------------------
+---
 
 # Testing
 
 Run the backend test suite:
 
-``` bash
+```bash
 python -m pytest backend/tests/ -v
 ```
 
-The current verified project baseline is:
+The current project baseline is:
 
-``` text
+```text
 28 passed
 0 warnings
 ```
 
-If tests fail after a change, investigate the regression before
-deployment.
+Always rerun the tests after making changes rather than relying solely on the historical baseline.
 
-------------------------------------------------------------------------
+If tests fail after a change, investigate the regression before deployment.
 
-# Production Build
+---
 
-The production application is designed to package the frontend and
-backend together using Docker.
+# Evaluation
 
-The intended production architecture is:
+RecoverAI includes a synthetic dataset and a held-out evaluation workflow.
 
-``` text
-Public HTTPS URL
-       ↓
-Docker Container
-       ↓
-FastAPI
-       ↓
-Compiled React/Vite frontend
-       +
-Backend APIs
-       ↓
-SQLite / Recovery Engine
-       ↓
-Mock or Razorpay Test Provider
+The evaluation compares:
+
+```text
+Rules-only
+    vs
+AI-assisted
 ```
 
-The deployed application should not require the Vite development server.
+using metrics including:
 
-------------------------------------------------------------------------
+* Precision
+* Recall
+* F1 Score
+* Revenue Recovered
+
+Run:
+
+```bash
+python evaluation/evaluate.py
+```
+
+Results are written to:
+
+```text
+results/final_results.json
+```
+
+## Evaluation Integrity
+
+The held-out evaluation dataset should remain separate from mutable application/demo state.
+
+Do not run evaluation against a database state that has been modified by demo/reset operations if those operations alter fields used to generate the original ground-truth labels.
+
+Do not manually edit evaluation results.
+
+Do not hardcode evaluation numbers into the dashboard.
+
+---
+
+# Demo Scenarios
+
+RecoverAI includes eight deterministic demonstration scenarios:
+
+1. Successful Recovery
+2. Provider Timeout
+3. High-Value Transaction Block
+4. Refund Protection
+5. Duplicate / Idempotency Protection
+6. Already Completed Payment
+7. AI Unavailable
+8. Malformed AI Output
+
+These scenarios demonstrate both:
+
+* Recovery capability
+* Safe failure handling
+
+---
 
 # Docker
 
@@ -705,55 +794,51 @@ The deployed application should not require the Vite development server.
 
 From the project root:
 
-``` bash
+```bash
 docker build -t recoverai .
 ```
 
 ## Run
 
-Use the port configured by the project's Dockerfile.
-
 A typical local configuration is:
 
-``` bash
+```bash
 docker run --rm -p 8000:8000 -e RAZORPAY_MODE=mock recoverai
 ```
 
 Then open:
 
-``` text
+```text
 http://localhost:8000
 ```
 
-If the Dockerfile uses a different internal port, use that port instead.
+If the Dockerfile uses a different internal port, use the port configured by the Dockerfile.
 
-------------------------------------------------------------------------
+---
 
 # Docker Compose
 
-If the project uses the supplied Compose configuration:
+If using the supplied Compose configuration:
 
-``` bash
+```bash
 docker compose up --build
 ```
 
 To stop:
 
-``` bash
+```bash
 docker compose down
 ```
 
-Use Docker Compose for local containerized verification when
-appropriate.
+Docker Compose can be used for local containerized verification.
 
-------------------------------------------------------------------------
+---
 
-# Deployment
+# Production Deployment
 
-For a hackathon demonstration, the recommended architecture is a single
-containerized web service:
+For a hackathon demonstration, the recommended architecture is a single containerized web service:
 
-``` text
+```text
 GitHub
    ↓
 Container Build
@@ -765,82 +850,110 @@ RecoverAI
 
 Suitable container platforms include:
 
--   Render
--   Google Cloud Run
--   other Docker-compatible hosting providers
+* Render
+* Google Cloud Run
+* Other Docker-compatible hosting providers
 
-For the simplest public demo, deploy the existing Dockerfile as one web
-service.
+For the simplest public demo, deploy the existing Dockerfile as one web service.
 
-------------------------------------------------------------------------
+---
 
 # Deployment Environment
 
-For the public hackathon demo, Simulation mode is recommended:
+For the public hackathon demo, use Simulation Mode:
 
-``` env
+```env
 RAZORPAY_MODE=mock
 ```
 
 This provides deterministic demo behavior.
 
-Razorpay Test Mode can be enabled separately when gateway integration
-needs to be demonstrated:
+Razorpay Test Mode can be enabled separately when gateway integration needs to be demonstrated:
 
-``` env
+```env
 RAZORPAY_MODE=test
 RAZORPAY_KEY_ID=...
 RAZORPAY_KEY_SECRET=...
 ```
 
-Do not enable live/production payment processing for the hackathon
-application.
+**Do not enable Razorpay Live Mode for the hackathon application.**
 
-------------------------------------------------------------------------
+---
+
+# Production Container Requirements
+
+The production container should:
+
+* Listen on `0.0.0.0`
+* Use the platform-provided port where required
+* Serve the compiled React application
+* Expose backend `/api/...` routes
+* Avoid development-only Vite serving
+* Keep secrets server-side
+* Avoid debug mode
+* Avoid automatic database resets
+* Preserve persistent database storage
+* Preserve persistent idempotency records
+
+---
 
 # Database Considerations
 
 The current application uses SQLite.
 
-For a public deployment, ensure the SQLite database is stored on
-persistent storage if the hosting platform uses ephemeral filesystems.
+For public deployment, ensure the SQLite database is stored on persistent storage if the hosting platform uses an ephemeral filesystem.
 
-The application should not reset or reseed the production/demo database
-on every application restart.
+The application should not reset or reseed the production/demo database on every application restart.
 
-For a future multi-merchant production SaaS, PostgreSQL or another
-managed relational database would be a more appropriate persistence
-layer.
+For a future multi-merchant production SaaS architecture, PostgreSQL or another managed relational database would be more appropriate.
 
-------------------------------------------------------------------------
+---
 
-# Security Notes
+# Security
 
 Before deployment:
 
--   Keep secrets in the hosting provider's secret/environment-variable
-    manager.
--   Never commit `.env`.
--   Never expose Razorpay credentials to the browser.
--   Never put secret keys in Vite environment variables intended for
-    client-side use.
--   Do not enable Razorpay Live Mode.
--   Do not expose internal stack traces in production.
--   Keep recovery guardrails server-side.
--   Preserve persistent idempotency.
--   Treat AI output as untrusted input and validate it before execution.
+* Keep secrets in the hosting provider's secret/environment-variable manager
+* Never commit `.env`
+* Never expose Razorpay credentials to the browser
+* Never put secret keys in Vite environment variables intended for client-side use
+* Do not enable Razorpay Live Mode
+* Do not expose internal stack traces in production
+* Keep recovery guardrails server-side
+* Preserve persistent idempotency
+* Treat AI output as untrusted input
+* Validate AI output before execution
 
-------------------------------------------------------------------------
+## Security Checklist
+
+```text
+.env                         NOT COMMITTED
+Razorpay secrets             NOT COMMITTED
+AI API keys                  NOT COMMITTED
+Database credentials         NOT COMMITTED
+Frontend secret variables    NOT USED
+```
+
+Before deployment:
+
+```text
+Razorpay Live Mode           DISABLED
+Debug mode                   DISABLED
+Secrets                      SERVER-SIDE ONLY
+Guardrails                   SERVER-SIDE
+Idempotency                  PERSISTENT
+```
+
+---
 
 # Frontend Product Experience
 
-The application intentionally avoids a login barrier for the hackathon
-demo.
+The application intentionally avoids a login barrier for the hackathon demonstration.
 
 The intended first-time experience is:
 
-``` text
-Open public URL
+```text
+Open Public URL
       ↓
 RecoverAI Dashboard
       ↓
@@ -859,171 +972,373 @@ Verification
 Audit Trail
 ```
 
-The interface clearly identifies whether the active environment is
-Simulation or Razorpay Test Mode.
+The interface clearly identifies whether the active environment is:
 
-------------------------------------------------------------------------
+```text
+SIMULATION
+```
+
+or:
+
+```text
+RAZORPAY TEST
+```
+
+---
 
 # Troubleshooting
 
-## Docker is not recognized on Windows
+## `docker` is not recognized on Windows
 
-Install Docker Desktop and restart the terminal after installation.
+If Windows displays:
+
+```text
+'docker' is not recognized as an internal or external command
+```
+
+install Docker Desktop and restart the terminal.
 
 Verify:
 
-``` bash
+```powershell
 docker --version
-```
-
-Then:
-
-``` bash
 docker compose version
 ```
 
-------------------------------------------------------------------------
+---
 
-## Frontend cannot reach the backend
+## `npm` is not recognized
 
-Check that:
-
--   FastAPI is running
--   the Vite proxy configuration is correct for development
--   production builds use same-origin `/api/...` requests
--   no hardcoded `localhost` URL remains in the production frontend
-
-------------------------------------------------------------------------
-
-## Razorpay Test Mode says credentials are missing
+Install Node.js and restart the terminal.
 
 Verify:
 
-``` env
+```powershell
+node --version
+npm --version
+```
+
+---
+
+## Python Import Errors
+
+Make sure the virtual environment is active:
+
+```powershell
+.venv\Scripts\activate
+```
+
+Then install dependencies:
+
+```powershell
+pip install -r requirements.txt
+```
+
+---
+
+## Port 8000 Is Already in Use
+
+Find the process using port `8000`, stop it, or start the backend on another local port.
+
+If changing the backend port, update the frontend proxy configuration if required.
+
+---
+
+## Frontend Cannot Reach Backend
+
+Check that:
+
+* FastAPI is running
+* The Vite proxy configuration is correct
+* Production builds use same-origin `/api/...` requests
+* No hardcoded `localhost` URL remains in the production frontend
+* Browser Network requests are reaching the expected API
+* Backend logs show incoming requests
+
+---
+
+## Dashboard Shows No Data
+
+Check:
+
+1. Database initialization
+2. Seed/demo data
+3. Backend status
+4. Frontend API requests
+5. Browser Network tab
+6. Backend logs
+7. Persistent database storage when deployed
+
+Do not solve an empty dashboard by hardcoding values into the frontend.
+
+---
+
+## Razorpay Test Mode Credentials Are Missing
+
+Verify:
+
+```env
 RAZORPAY_MODE=test
 RAZORPAY_KEY_ID=rzp_test_...
 RAZORPAY_KEY_SECRET=...
 ```
 
-Make sure the credentials are configured on the backend/server
-environment.
+Make sure:
 
-Restart the application after changing environment variables.
+* Test Mode credentials are being used
+* Credentials are configured on the backend
+* Credentials are not placed in frontend code
+* The backend was restarted after changing environment variables
 
-------------------------------------------------------------------------
+---
 
-## Dashboard is empty after deployment
+## Evaluation Numbers Changed Unexpectedly
 
-Check:
+Check whether the application database was reset or mutated before evaluation.
 
-1.  Database initialization
-2.  Seed/demo data
-3.  Persistent database storage
-4.  API response in the browser Network tab
-5.  Backend logs
+Run evaluation against the intended generated held-out dataset and preserve its ground-truth fields.
 
-Do not solve an empty dashboard by hardcoding values into the frontend.
+---
 
-------------------------------------------------------------------------
+## Public Deployment Loses Data
 
-## Evaluation numbers changed unexpectedly
+Check whether the hosting provider uses an ephemeral filesystem.
 
-Check whether the application database was reset or mutated before
-evaluation.
+SQLite requires persistent storage if data must survive:
 
-Run evaluation against the intended generated held-out dataset and
-preserve its ground-truth fields.
+* Instance replacement
+* Redeployment
+* Restart
+* Scaling events
 
-------------------------------------------------------------------------
+---
 
-# Demo Checklist
+# Demo Flow
 
-Before presenting RecoverAI:
+For a short hackathon demonstration:
 
-### Application
+```text
+Overview
+   ↓
+Revenue at Risk
+   ↓
+Open Failed Payment
+   ↓
+AI Diagnosis
+   ↓
+Guardrail Decision
+   ↓
+Execute Recovery
+   ↓
+Verification
+   ↓
+Audit Trail
+   ↓
+Evaluation
+```
 
--   [ ] Public URL opens successfully
--   [ ] Dashboard loads
--   [ ] Provider indicator is correct
--   [ ] No browser console errors
--   [ ] No failed API requests
+Then demonstrate one safety scenario:
 
-### Recovery
+```text
+High-Value Transaction
+        ↓
+AI Recommendation
+        ↓
+Policy Threshold
+        ↓
+BLOCKED / HUMAN APPROVAL
+```
 
--   [ ] Failed payment can be inspected
--   [ ] AI/rules decision is visible
--   [ ] Guardrails are visible
--   [ ] Execution result is visible
--   [ ] Verification result is visible
--   [ ] Audit trail records the operation
+The key message:
 
-### Safety
+> **AI recommends. Policies decide. Executor acts. Verification confirms.**
 
--   [ ] High-value transaction is blocked/escalated
--   [ ] Refund protection works
--   [ ] Duplicate/idempotency scenario works
--   [ ] Already-completed payment is not executed again
--   [ ] Provider timeout is handled safely
+---
 
-### Evaluation
+# Pre-Submission Checklist
 
--   [ ] Evaluation data is real
--   [ ] Rules vs AI comparison is visible
--   [ ] No fabricated metrics
+## Application
 
-### Environment
+* [ ] Public URL opens successfully
+* [ ] Dashboard loads
+* [ ] Provider indicator is correct
+* [ ] No browser console errors
+* [ ] No failed API requests
 
--   [ ] Simulation/Test status is clearly visible
--   [ ] No secrets are exposed
--   [ ] No Razorpay Live Mode is enabled
+## Recovery
 
-------------------------------------------------------------------------
+* [ ] Failed payment can be inspected
+* [ ] AI/rules decision is visible
+* [ ] Guardrails are visible
+* [ ] Execution result is visible
+* [ ] Verification result is visible
+* [ ] Audit trail records the operation
+
+## Safety
+
+* [ ] High-value transaction is blocked/escalated
+* [ ] Refund protection works
+* [ ] Duplicate/idempotency scenario works
+* [ ] Already-completed payment is not executed again
+* [ ] Provider timeout is handled safely
+* [ ] AI unavailable scenario works
+* [ ] Malformed AI output is rejected safely
+
+## Evaluation
+
+* [ ] Evaluation data is separate from mutable demo state
+* [ ] Rules vs AI comparison is visible
+* [ ] Metrics are generated by the evaluation workflow
+* [ ] No fabricated metrics are displayed
+
+## Environment
+
+* [ ] Simulation/Test status is clearly visible
+* [ ] No secrets are exposed
+* [ ] Razorpay Live Mode is disabled
+
+---
 
 # Current Verification Baseline
 
-The project has been reported as:
+The project baseline documented during development is:
 
-``` text
-Backend tests:        28/28 passed
-Warnings:             0
-Razorpay Test Mode:   Implemented
-Simulation Mode:      Implemented
+```text
+Backend tests:          28/28 passed
+Warnings:               0
+Razorpay Test Mode:     Implemented
+Simulation Mode:        Implemented
 Persistent Idempotency: Implemented
-Guardrails:           Implemented
-Audit Trail:          Implemented
-Evaluation:           Implemented
-Demo Scenarios:       8
+Guardrails:             Implemented
+Audit Trail:            Implemented
+Evaluation:             Implemented
+Demo Scenarios:         8
 ```
 
-Always rerun the tests after making changes rather than relying solely
-on this historical baseline.
+Always rerun the test suite after making changes.
 
-------------------------------------------------------------------------
+---
+
+# Limitations
+
+RecoverAI is a buildathon demonstration and has several limitations.
+
+### Synthetic / Demo Data
+
+Simulation scenarios use synthetic/demo data rather than production customer data.
+
+### Test Mode Only
+
+Razorpay integration is intended for Test Mode. Live payment processing is intentionally disabled for the hackathon deployment.
+
+### SQLite
+
+SQLite is suitable for the current demonstration but is not the preferred database architecture for a large multi-merchant production system.
+
+### AI Dependency
+
+AI-assisted analysis depends on the configured external AI provider. The application must safely handle AI unavailability and malformed AI output.
+
+### Recovery Calibration
+
+Demo recovery behavior and evaluation results should not be interpreted as production-calibrated financial predictions.
+
+---
+
+# Future Improvements
+
+Potential future improvements include:
+
+* Multi-merchant architecture
+* PostgreSQL-based production persistence
+* Real production webhook ingestion
+* More advanced recovery policies
+* Improved recovery prediction models
+* A/B testing of recovery strategies
+* Actual recovery-outcome feedback loops
+* SMS/WhatsApp recovery communication
+* Multi-language customer messaging
+* Merchant-specific policies
+* Human approval workflows
+* Production-grade observability
+* Advanced analytics and reporting
+
+---
 
 # Design Philosophy
 
-RecoverAI is intentionally not presented as an unrestricted autonomous
-payment agent.
+RecoverAI is intentionally **not** presented as an unrestricted autonomous payment agent.
 
 The system is built around controlled automation:
 
-> **AI recommends. Policies decide. Executor acts. Verification
-> confirms.**
+> **AI recommends. Policies decide. Executor acts. Verification confirms.**
 
-This separation allows RecoverAI to use AI where judgment is useful
-while keeping financial execution constrained by deterministic policies,
-state validation, idempotency, and post-action verification.
+This separation allows AI to be used where judgment is useful while keeping financial execution constrained by:
 
-------------------------------------------------------------------------
+* Deterministic policies
+* Schema validation
+* State validation
+* Idempotency
+* Guardrails
+* Post-action verification
+* Auditability
 
-## License
+---
+
+# Screenshots
+
+Add screenshots of the actual deployed application here before final submission.
+
+Recommended screenshots:
+
+```text
+assets/
+├── dashboard.png
+├── payment-detail.png
+├── recovery-center.png
+├── guardrails.png
+├── audit-trail.png
+└── evaluation.png
+```
+
+Suggested README presentation:
+
+```markdown
+## Dashboard
+
+![RecoverAI Dashboard](assets/dashboard.png)
+
+## Recovery Decision
+
+![Recovery Decision](assets/payment-detail.png)
+
+## Audit Trail
+
+![Audit Trail](assets/audit-trail.png)
+
+## Evaluation
+
+![Evaluation](assets/evaluation.png)
+```
+
+---
+
+# License
 
 Add the project's chosen license here before public distribution.
 
-## Acknowledgements
+---
 
-Built as part of the Razorpay AI buildathon.
+# Acknowledgements
 
-Razorpay APIs are used only where supported by Razorpay's documented
-Test Mode capabilities. Simulation scenarios are provided by RecoverAI's
-own mock provider.
+Built as part of the **Razorpay AI Buildathon 2026**.
+
+Razorpay APIs are used only where supported by Razorpay's documented Test Mode capabilities. Simulation scenarios are provided by RecoverAI's own mock provider.
+
+---
+
+## Final Demo Message
+
+> **RecoverAI doesn't give AI unrestricted control over payments.**
+>
+> **AI recommends. Policies decide. Executor acts. Verification confirms.**

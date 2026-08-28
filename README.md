@@ -45,8 +45,7 @@ Built for the **Razorpay AI Buildathon 2026**, RecoverAI supports both:
 28. [Pre-Submission Checklist](#pre-submission-checklist)
 29. [Limitations](#limitations)
 30. [Future Improvements](#future-improvements)
-31. [License](#license)
-32. [Acknowledgements](#acknowledgements)
+31. [Acknowledgements](#acknowledgements)
 
 ---
 

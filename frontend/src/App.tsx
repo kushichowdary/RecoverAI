@@ -612,13 +612,14 @@ export default function App() {
         {/* CONTAINER VIEWPORTS */}
         <div className="flex-1 overflow-y-auto p-8">
           
-          {loading && metrics.total_failed_count === 0 && (
+          {loading && payments.length === 0 && (
             <div className="flex items-center justify-center h-64">
               <RefreshCw size={36} className="animate-spin text-blue-600" />
             </div>
           )}
 
-          {(!loading || metrics.total_failed_count > 0) && (
+          {(!loading || payments.length > 0) && (
+
 
             <>
               {/* --- VIEW 1: DASHBOARD --- */}

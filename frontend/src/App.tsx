@@ -75,36 +75,52 @@ export default function App() {
   const [selectedAuditEventId, setSelectedAuditEventId] = useState<string | null>(null);
   const [policyStatusMsg, setPolicyStatusMsg] = useState<string | null>(null);
 
-  // Fetch initial data
+  // Fetch initial data in parallel
   const fetchData = async () => {
     setLoading(true);
     try {
-      const metricsRes = await fetch('/api/dashboard');
-      const metricsData = await metricsRes.json();
-      setMetrics(metricsData);
-      
-      const paymentsRes = await fetch('/api/payments?is_held_out=false');
-      const paymentsData = await paymentsRes.json();
-      setPayments(paymentsData);
-      
-      const casesRes = await fetch('/api/recovery/cases');
-      const casesData = await casesRes.json();
-      setRecoveryCases(casesData);
-      
-      const auditRes = await fetch('/api/audit');
-      const auditData = await auditRes.json();
-      setAuditEvents(auditData);
-      
-      const evalRes = await fetch('/api/evaluation');
-      const evalData = await evalRes.json();
-      setEvalRuns(evalData);
-      
-      const policyRes = await fetch('/api/policies');
-      const policyData = await policyRes.json();
-      setPolicy(policyData);
+      const [
+        metricsRes,
+        paymentsRes,
+        casesRes,
+        auditRes,
+        evalRes,
+        policyRes,
+        statusRes
+      ] = await Promise.all([
+        fetch('/api/dashboard'),
+        fetch('/api/payments?is_held_out=false'),
+        fetch('/api/recovery/cases'),
+        fetch('/api/audit'),
+        fetch('/api/evaluation'),
+        fetch('/api/policies'),
+        fetch('/api/integrations/razorpay/status')
+      ]);
 
-      const statusRes = await fetch('/api/integrations/razorpay/status');
-      const statusData = await statusRes.json();
+      const [
+        metricsData,
+        paymentsData,
+        casesData,
+        auditData,
+        evalData,
+        policyData,
+        statusData
+      ] = await Promise.all([
+        metricsRes.json(),
+        paymentsRes.json(),
+        casesRes.json(),
+        auditRes.json(),
+        evalRes.json(),
+        policyRes.json(),
+        statusRes.json()
+      ]);
+
+      setMetrics(metricsData);
+      setPayments(paymentsData);
+      setRecoveryCases(casesData);
+      setAuditEvents(auditData);
+      setEvalRuns(evalData);
+      setPolicy(policyData);
       setIntegrationStatus(statusData);
     } catch (e) {
       console.error("Error fetching dashboard data:", e);
@@ -112,6 +128,7 @@ export default function App() {
       setLoading(false);
     }
   };
+
 
   useEffect(() => {
     fetchData();
@@ -595,13 +612,14 @@ export default function App() {
         {/* CONTAINER VIEWPORTS */}
         <div className="flex-1 overflow-y-auto p-8">
           
-          {loading && (
+          {loading && metrics.total_failed_count === 0 && (
             <div className="flex items-center justify-center h-64">
               <RefreshCw size={36} className="animate-spin text-blue-600" />
             </div>
           )}
 
-          {!loading && (
+          {(!loading || metrics.total_failed_count > 0) && (
+
             <>
               {/* --- VIEW 1: DASHBOARD --- */}
               {currentView === 'dashboard' && (

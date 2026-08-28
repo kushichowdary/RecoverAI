@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  recoverai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./recoverai.db
+      - AI_PROVIDER=mock
+      - RAZORPAY_MODE=mock
+      - MAX_RETRY_ATTEMPTS=3
+      - MAX_AUTOMATIC_RECOVERY_AMOUNT=50000
+      - MIN_AI_CONFIDENCE=0.70
+      - DAILY_ACTION_LIMIT=100
+    volumes:
+      - ./data_volume:/app/data_volume

@@ -1,0 +1,41 @@
+{
+  "dataset_size": 1000,
+  "held_out_size": 200,
+  "precision": 0.6667,
+  "recall": 1.0,
+  "f1": 0.8,
+  "recovery_attempts": 177,
+  "successful_recoveries": 118,
+  "revenue_at_risk": 2066076.0,
+  "revenue_recovered": 906525.0,
+  "guardrail_blocks": 18,
+  "human_escalations": 5,
+  "comparison": {
+    "rules_only": {
+      "mode": "Rules-only",
+      "precision": 0.6788,
+      "recall": 0.9492,
+      "f1": 0.7915,
+      "recovery_attempts": 165,
+      "successful_recoveries": 112,
+      "revenue_recovered": 863278.0,
+      "recovery_rate": 56.0,
+      "false_positive_cost": 2650.0,
+      "guardrail_blocks": 18,
+      "human_escalations": 17
+    },
+    "ai_assisted": {
+      "mode": "AI-assisted",
+      "precision": 0.6667,
+      "recall": 1.0,
+      "f1": 0.8,
+      "recovery_attempts": 177,
+      "successful_recoveries": 118,
+      "revenue_recovered": 906525.0,
+      "recovery_rate": 59.0,
+      "false_positive_cost": 2950.0,
+      "guardrail_blocks": 18,
+      "human_escalations": 5
+    }
+  }
+}

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: recoverai
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: RAZORPAY_MODE
+        value: mock
+      - key: AI_PROVIDER
+        value: mock
+      - key: DATABASE_URL
+        value: sqlite:///./recoverai.db

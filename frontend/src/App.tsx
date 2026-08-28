@@ -447,7 +447,7 @@ export default function App() {
             <span className="text-2xl">🛡️</span>
             <div>
               <h1 className="font-bold text-sm leading-tight text-white tracking-tight">RecoverAI</h1>
-              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">Recovery Control Center</p>
+              <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider mt-0.5">AI REVENUE RECOVERY</p>
             </div>
           </div>
           
@@ -565,11 +565,19 @@ export default function App() {
           </div>
           <div className="flex items-center gap-3">
             <div className="bg-slate-900 p-2 rounded-full text-slate-400">
-              <User size={14} />
+              <Database size={14} />
             </div>
             <div>
-              <p className="text-[10px] text-slate-600 font-semibold">HACKATHON MODE</p>
-              <p className="text-xs font-semibold text-slate-300">Razorpay AI Builder</p>
+              <p className="text-[9px] text-slate-500 font-bold tracking-wider uppercase">ENVIRONMENT</p>
+              <div className="flex items-center gap-1.5 leading-tight">
+                <span className={`w-1.5 h-1.5 rounded-full ${integrationStatus.mode === 'test' ? 'bg-purple-500' : 'bg-blue-500'}`}></span>
+                <span className="text-xs font-bold text-slate-300">
+                  {integrationStatus.mode === 'test' ? 'RAZORPAY TEST' : 'SIMULATION'}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 font-semibold">
+                {integrationStatus.mode === 'test' ? 'Test Gateway' : 'Synthetic Dataset'}
+              </p>
             </div>
           </div>
         </div>
@@ -603,8 +611,9 @@ export default function App() {
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
               Sync Gateway
             </button>
-            <span className="text-xs px-3 py-1.5 bg-yellow-50 text-yellow-800 border border-yellow-200 font-bold rounded-full uppercase tracking-wider">
-              {policy.auto_recovery_ceiling > 0 ? "Autonomous Mode" : "Dry-Run / Manual Mode"}
+            <span className="text-xs px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold rounded-full uppercase tracking-wider flex items-center gap-1">
+              <Check size={12} className="stroke-[3px]" />
+              GUARDRAILS ACTIVE
             </span>
           </div>
         </header>

@@ -166,6 +166,10 @@ def run_evaluation():
             else:
                 stats["ai_assisted"]["tn"] += 1
                 
+        # Clean up transient relationships to avoid SAWarnings on commit
+        if temp_case in pay.recovery_cases:
+            pay.recovery_cases.remove(temp_case)
+                
     # Calculate metrics
     def calculate_metrics_dict(s, label):
         tp, fp, fn, tn = s["tp"], s["fp"], s["fn"], s["tn"]

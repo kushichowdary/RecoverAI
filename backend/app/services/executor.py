@@ -160,6 +160,14 @@ def execute_recovery_action(db: Session, case_id: str, scenario_override: str = 
                 elif status == "captured":
                     resp = pay_details
                     final_status = "captured"
+                elif status == "not_found":
+                    resp = {
+                        "id": payment.record_id,
+                        "status": "failed",
+                        "error_code": "synthetic_payment_id",
+                        "error_description": f"Payment ID '{payment.record_id}' is a local synthetic benchmark ID and does not exist on Razorpay live servers. Switch RAZORPAY_MODE=mock in Render environment settings to run simulated recoveries."
+                    }
+                    final_status = "failed"
                 else:
                     # Never capture failed payments
                     resp = {
@@ -169,6 +177,7 @@ def execute_recovery_action(db: Session, case_id: str, scenario_override: str = 
                         "error_description": f"Direct capture of a failed/created payment is not supported by Razorpay REST API. Current status: {status}"
                     }
                     final_status = "failed"
+
             else:
                 # MockRazorpayAdapter simulation retry
                 resp = adapter.retry_payment(

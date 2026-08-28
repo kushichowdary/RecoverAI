@@ -268,10 +268,22 @@ class RazorpayTestAdapter(PaymentProvider):
 
     def fetch_payment(self, payment_id: str, db: Optional[Any] = None) -> Dict[str, Any]:
         logger.info(f"[Razorpay API] Fetching payment details for {payment_id}")
-        with httpx.Client(auth=self.auth) as client:
-            resp = client.get(f"{self.base_url}/payments/{payment_id}")
-            resp.raise_for_status()
-            return resp.json()
+        try:
+            with httpx.Client(auth=self.auth) as client:
+                resp = client.get(f"{self.base_url}/payments/{payment_id}")
+                resp.raise_for_status()
+                return resp.json()
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code in [400, 404]:
+                logger.warning(f"Payment ID {payment_id} not found or invalid format on Razorpay server: {e}")
+                return {
+                    "id": payment_id,
+                    "status": "not_found",
+                    "error_code": "invalid_payment_id",
+                    "error_description": f"Payment ID {payment_id} was not found on Razorpay gateway. If using synthetic demo data, switch RAZORPAY_MODE=mock."
+                }
+            raise
+
 
     def fetch_order_payments(self, order_id: str, db: Optional[Any] = None) -> List[Dict[str, Any]]:
         logger.info(f"[Razorpay API] Fetching payments for order {order_id}")

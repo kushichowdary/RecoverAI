@@ -1285,47 +1285,7 @@ This separation allows AI to be used where judgment is useful while keeping fina
 
 ---
 
-# Screenshots
 
-Add screenshots of the actual deployed application here before final submission.
-
-Recommended screenshots:
-
-```text
-assets/
-├── dashboard.png
-├── payment-detail.png
-├── recovery-center.png
-├── guardrails.png
-├── audit-trail.png
-└── evaluation.png
-```
-
-Suggested README presentation:
-
-```markdown
-## Dashboard
-
-![RecoverAI Dashboard](assets/dashboard.png)
-
-## Recovery Decision
-
-![Recovery Decision](assets/payment-detail.png)
-
-## Audit Trail
-
-![Audit Trail](assets/audit-trail.png)
-
-## Evaluation
-
-![Evaluation](assets/evaluation.png)
-```
-
----
-
-# License
-
-Add the project's chosen license here before public distribution.
 
 ---
 

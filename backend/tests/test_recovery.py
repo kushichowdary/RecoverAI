@@ -736,3 +736,82 @@ def test_idempotency_across_session_restart():
         pass
 
 
+def test_dashboard_metric_consistency(db_session):
+    # 1. Create a recovered case in Category A (bank_timeout) - non-held-out
+    p1 = create_mock_payment(db_session, "pay_cons_1", amount=1000.0, failure_code="bank_timeout")
+    p1.is_held_out = False
+    db_session.add(p1)
+    db_session.commit()
+    case1 = ingest_failed_payment(db_session, p1.record_id)
+    case1.status = "RECOVERED"
+    p1.status = "RECOVERED"
+    db_session.commit()
+    
+    # 2. Create a recovered case in Category B (card_expired) - non-held-out
+    p2 = create_mock_payment(db_session, "pay_cons_2", amount=2000.0, failure_code="card_expired")
+    p2.is_held_out = False
+    db_session.add(p2)
+    db_session.commit()
+    case2 = ingest_failed_payment(db_session, p2.record_id)
+    case2.status = "RECOVERED"
+    p2.status = "RECOVERED"
+    db_session.commit()
+    
+    # 3. Create a recovered case in Category C (network_error) - held-out (should be excluded)
+    p3 = create_mock_payment(db_session, "pay_cons_3", amount=3000.0, failure_code="network_error")
+    p3.is_held_out = True
+    db_session.add(p3)
+    db_session.commit()
+    case3 = ingest_failed_payment(db_session, p3.record_id)
+    case3.status = "RECOVERED"
+    p3.status = "RECOVERED"
+    db_session.commit()
+
+    # 4. Create an active case in Category A (bank_timeout) - non-held-out
+    p4 = create_mock_payment(db_session, "pay_cons_4", amount=60000.0, failure_code="bank_timeout")
+    p4.is_held_out = False
+    db_session.add(p4)
+    db_session.commit()
+    case4 = ingest_failed_payment(db_session, p4.record_id)
+    case4.status = "APPROVED"
+    db_session.commit()
+    
+    # Call the dashboard metrics function
+    metrics = calculate_dashboard_metrics(db_session)
+    
+    # Assertions
+    # 1. Overall recovered count must exclude held-out case3, so it should be exactly 2
+    assert metrics["successful_recoveries"] == 2
+    
+    # Check that total cases (denominator) only includes non-held-out (case1, case2, case4) = 3 cases
+    # (Note: case3 is held-out, so excluded from total_cases)
+    # Recovery rate is 2 / 3 * 100 = 66.67%
+    assert metrics["recovery_rate"] == 66.67
+    
+    # Query case categories for non-held-out to mimic frontend behavior
+    payments = db_session.query(PaymentRecord).filter(PaymentRecord.is_held_out == False).all()
+    
+    def get_category_metrics(code):
+        code_payments = [p for p in payments if p.failure_code == code]
+        total = len(code_payments)
+        recovered = len([p for p in code_payments if p.status in ["RECOVERED", "SUCCESS"]])
+        rate = round((recovered / total * 100.0), 2) if total > 0 else 0.0
+        return total, recovered, rate
+        
+    t_a, r_a, rate_a = get_category_metrics("bank_timeout")
+    t_b, r_b, rate_b = get_category_metrics("card_expired")
+    t_c, r_c, rate_c = get_category_metrics("network_error")
+    
+    # Assert category specific recovered counts
+    assert r_a == 1  # 1 from p1 (p4 is active/APPROVED so not recovered)
+    assert r_b == 1  # 1 from p2
+    assert r_c == 0  # p3 is excluded because is_held_out is True
+    
+    # Assert reconciliation: SUM(recovered by category) == metrics["successful_recoveries"]
+    total_recovered_categories = sum(
+        get_category_metrics(code)[1]
+        for code in ["bank_timeout", "card_expired", "network_error", "insufficient_funds", "mandate_revoked", "issuer_declined_generic", "do_not_honor"]
+    )
+    assert total_recovered_categories == metrics["successful_recoveries"]
+
+

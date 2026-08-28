@@ -271,7 +271,7 @@ export default function App() {
       };
       
       // Let's retrieve a payment from the seeded dataset that fits the scenario criteria!
-      const seededPaymentsRes = await fetch('/api/payments');
+      const seededPaymentsRes = await fetch('/api/payments?is_held_out=false');
       const seededPayments = await seededPaymentsRes.json();
       
       let selectedPay = seededPayments[0];

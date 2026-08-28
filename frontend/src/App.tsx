@@ -691,7 +691,12 @@ export default function App() {
                   {/* Secondary Counts Grid */}
                   <div className="grid grid-cols-4 gap-6">
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recovery Attempts</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Recovery Attempts</p>
+                        <span title="Cases where a retry execution was actually attempted">
+                          <HelpCircle size={10} className="text-slate-400 cursor-help" />
+                        </span>
+                      </div>
                       <p className="text-lg font-bold text-slate-800 mt-1">{metrics.recovery_attempts}</p>
                     </div>
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
@@ -703,7 +708,12 @@ export default function App() {
                       <p className="text-lg font-bold text-yellow-600 mt-1">{metrics.human_escalations}</p>
                     </div>
                     <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unresolved Cases</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Unresolved Cases</p>
+                        <span title="Total cases without a successful recovery outcome (includes blocked, escalated, and failed attempts)">
+                          <HelpCircle size={10} className="text-slate-400 cursor-help" />
+                        </span>
+                      </div>
                       <p className="text-lg font-bold text-slate-700 mt-1">{metrics.unresolved_cases}</p>
                     </div>
                   </div>
@@ -714,7 +724,12 @@ export default function App() {
                     <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm flex flex-col justify-between">
                       <div>
                         <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Recovery Success Rate by Failure Type (%)</h3>
-                        <p className="text-[11px] text-slate-400 mb-6">Historical trend data is not available yet. Showing aggregate success rates.</p>
+                        <p className="text-[11px] text-slate-400 mb-6">
+                          {metrics.successful_recoveries < 10 
+                            ? "Insufficient processed cases per category to show reliable success rates."
+                            : "Showing aggregate recovery success rates by failure category."
+                          }
+                        </p>
                       </div>
                       {metrics.successful_recoveries < 10 ? (
                         <div className="flex flex-col items-center justify-center h-64 text-center p-6 border border-dashed border-gray-250 rounded-lg">
@@ -822,7 +837,14 @@ export default function App() {
                               {pieData.map((d, i) => (
                                 <div key={i} className="flex items-center gap-3 text-xs">
                                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: d.color }}></span>
-                                  <span className="text-slate-500 capitalize">{d.name}</span>
+                                  <span className="text-slate-500 capitalize flex items-center gap-1">
+                                    {d.name}
+                                    {d.name === 'Still Failed' && (
+                                      <span title="Processed attempts that remain failed after execution">
+                                        <HelpCircle size={10} className="text-slate-400 cursor-help" />
+                                      </span>
+                                    )}
+                                  </span>
                                   <span className="font-bold text-slate-800 ml-auto">{d.value}</span>
                                 </div>
                               ))}
